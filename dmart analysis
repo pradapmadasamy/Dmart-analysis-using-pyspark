@@ -1,0 +1,78 @@
+# Establish PySpark Connection
+
+from pyspark.sql import SparkSession
+
+# Initialize Spark session
+spark = SparkSession.builder \
+    .appName("Dmart Analysis") \
+    .getOrCreate()
+
+print("PySpark Session Established!")
+
+# Load data from CSV files into DataFrames
+products_df = spark.read.csv('/content/sample_data/Product.csv', header=True, inferSchema=True)
+sales_df = spark.read.csv('/content/sample_data/Sales.csv', header=True, inferSchema=True)
+customer_df = spark.read.csv('/content/sample_data/Customer.csv', header=True, inferSchema=True)
+
+print("Data Loaded into PySpark DataFrames!")
+
+# Verify the loaded data
+products_df.show(10)
+sales_df.show(10)
+customer_df.show(10)
+
+
+from pyspark.sql.functions import col
+# Joining DataFrames on ProductID and CustomerID
+combined_df = sales_df.join(products_df, on="Product ID", how="inner") \
+                      .join(customer_df, on="Customer ID", how="inner")
+
+print("Joined the DataFrames on relevant keys!")
+
+#Data Analysis and Querying
+
+# Question 1: Total sales for each product category
+total_sales_category = combined_df.groupBy("Category").sum("Sales").withColumnRenamed("sum(Sales)", "total_sales")
+
+# Question 2: Customer with the highest number of purchases
+highest_purchases_customer = combined_df.groupBy("Customer ID").count().orderBy("count", ascending=False).limit(1)
+
+# Question 3: Average discount across all products
+average_discount = combined_df.agg({"Discount": "avg"}).withColumnRenamed("avg(Discount)", "average_discount")
+
+# Question 4: Unique products sold in each region
+unique_products_region = combined_df.groupBy("Region").agg({"Product ID": "count"}).withColumnRenamed("count(Product ID)", "unique_products")
+
+# Question 5: Total profit by state
+total_profit_state = combined_df.groupBy("State").sum("Profit").withColumnRenamed("sum(Profit)", "total_profit")
+
+# Question 6: Product sub-category with the highest sales
+highest_sales_subcategory = combined_df.groupBy("Sub-Category").sum("Sales").orderBy("sum(Sales)", ascending=False).limit(1)
+
+# Question 7: Average age of customers in each segment
+average_age_segment = combined_df.groupBy("Segment").avg("Age").withColumnRenamed("avg(Age)", "average_age")
+
+# Question 8: Orders shipped in each shipping mode
+orders_shipped_mode = combined_df.groupBy("Ship Mode").count().withColumnRenamed("count", "total_orders")
+
+# Question 9: Total quantity of products sold in each city
+total_quantity_city = combined_df.groupBy("City").sum("Quantity").withColumnRenamed("sum(Quantity)", "total_quantity")
+
+# Question 10: Customer segment with the highest profit margin
+highest_profit_margin_segment = combined_df.groupBy("Segment").sum("Profit").orderBy("sum(Profit)", ascending=False).limit(1)
+
+print("Data Analysis Queries Executed!")
+
+
+# Displaying results
+total_sales_category.show()
+highest_purchases_customer.show()
+average_discount.show()
+unique_products_region.show()
+total_profit_state.show()
+highest_sales_subcategory.show()
+average_age_segment.show()
+orders_shipped_mode.show()
+total_quantity_city.show()
+highest_profit_margin_segment.show()
+
